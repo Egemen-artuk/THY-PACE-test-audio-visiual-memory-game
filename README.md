@@ -120,4 +120,5 @@ To run the game locally:
 3. Serve the files through a local web server (due to CORS restrictions)
 4. Open `index.html` in a modern web browser
 
-The game will work without audio files but will log audio attempts to the console for testing purposes.
+The game will work without audio files but will log audio attempts to the console for testing purposes. 
+
