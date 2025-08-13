@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Visual Memory Game</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Difficulty Selection Screen -->
+        <div id="difficulty-screen" class="screen active">
+            <h1>Audio Visual Memory</h1>
+            <div class="difficulty-buttons">
+                <button class="difficulty-btn exam-btn" data-difficulty="exam" data-tooltip="Complete all 3 difficulties in sequence: Easy → Medium → Hard. Test your mastery across all difficulty levels!">
+                    Exam
+                    <div class="tooltip">Complete all 3 difficulties in sequence: Easy → Medium → Hard. Test your mastery across all difficulty levels!</div>
+                </button>
+                <button class="difficulty-btn" data-difficulty="easy">Easy</button>
+                <button class="difficulty-btn" data-difficulty="medium">Medium</button>
+                <button class="difficulty-btn" data-difficulty="hard">Hard</button>
+            </div>
+        </div>
+
+        <!-- Game Screen -->
+        <div id="game-screen" class="screen">
+            <div class="game-header">
+                <div class="round-info">
+                    <span id="current-round">Round 1</span>
+                    <span id="difficulty-display"></span>
+                </div>
+                <div class="phase-indicator" id="phase-indicator">Visual Phase</div>
+            </div>
+
+            <!-- Corridor Display -->
+            <div id="corridor-container">
+                <div class="corridor-layout">
+                    <div class="airport-icon">
+                        <div class="airport-building">
+                            <div class="control-tower"></div>
+                            <div class="terminal"></div>
+                        </div>
+                        <div class="airport-name">Istanbul</div>
+                    </div>
+                    <div class="corridors-list">
+                        <div class="corridor-item" data-corridor="10">
+                            <span class="corridor-number">10. Corridor</span>
+                            <div class="corridor-line"></div>
+                            <div class="airplane-icon hidden"></div>
+                        </div>
+                        <div class="corridor-item" data-corridor="9">
+                            <span class="corridor-number">9. Corridor</span>
+                            <div class="corridor-line"></div>
+                            <div class="airplane-icon hidden"></div>
+                        </div>
+                        <div class="corridor-item" data-corridor="8">
+                            <span class="corridor-number">8. Corridor</span>
+                            <div class="corridor-line"></div>
+                            <div class="airplane-icon hidden"></div>
+                        </div>
+                        <div class="corridor-item" data-corridor="7">
+                            <span class="corridor-number">7. Corridor</span>
+                            <div class="corridor-line"></div>
+                            <div class="airplane-icon hidden"></div>
+                        </div>
+                        <div class="corridor-item" data-corridor="6">
+                            <span class="corridor-number">6. Corridor</span>
+                            <div class="corridor-line"></div>
+                            <div class="airplane-icon hidden"></div>
+                        </div>
+                        <div class="corridor-item" data-corridor="5">
+                            <span class="corridor-number">5. Corridor</span>
+                            <div class="corridor-line"></div>
+                            <div class="airplane-icon hidden"></div>
+                        </div>
+                        <div class="corridor-item" data-corridor="4">
+                            <span class="corridor-number">4. Corridor</span>
+                            <div class="corridor-line"></div>
+                            <div class="airplane-icon hidden"></div>
+                        </div>
+                        <div class="corridor-item" data-corridor="3">
+                            <span class="corridor-number">3. Corridor</span>
+                            <div class="corridor-line"></div>
+                            <div class="airplane-icon hidden"></div>
+                        </div>
+                        <div class="corridor-item" data-corridor="2">
+                            <span class="corridor-number">2. Corridor</span>
+                            <div class="corridor-line"></div>
+                            <div class="airplane-icon hidden"></div>
+                        </div>
+                        <div class="corridor-item" data-corridor="1">
+                            <span class="corridor-number">1. Corridor</span>
+                            <div class="corridor-line"></div>
+                            <div class="airplane-icon hidden"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Audio Phase Display -->
+            <div id="audio-phase" class="hidden">
+                <div class="audio-display">
+                    <div class="current-announcement">
+                        <div id="current-city">Listening...</div>
+                        <div id="current-corridor-audio">Corridor...</div>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="audio-progress"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Answer Phase -->
+            <div id="answer-phase" class="hidden">
+                <div class="answer-container">
+                    <div class="timer-container">
+                        <div class="timer" id="answer-timer">Time: 8s</div>
+                    </div>
+                    <div class="cities-interface">
+                        <div class="turkish-airlines-header">
+                            <div class="airline-logo">🇹🇷 TURKISH AIRLINES</div>
+                            <div class="practice-info">Practice 2 of 30</div>
+                            <div class="exit-btn">Exit ➤</div>
+                        </div>
+                        <h3>Select the cities you remember (exclude only cities from red corridors):</h3>
+                        <div class="cities-grid" id="cities-list">
+                            <!-- Cities will be populated dynamically -->
+                        </div>
+                        <button id="submit-answer" class="submit-btn">Submit Answer</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Display -->
+            <div id="results-phase" class="hidden">
+                <div class="results-container">
+                    <h3>Round Results</h3>
+                    <div class="results-grid" id="results-grid">
+                        <!-- Results will be populated dynamically -->
+                    </div>
+                    <div class="results-actions">
+                        <button id="next-round" class="action-btn">Next Round</button>
+                        <button id="restart-game" class="action-btn secondary">Restart Game</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
