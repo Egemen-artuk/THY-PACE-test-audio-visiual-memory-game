@@ -551,6 +551,18 @@ class AudioVisualMemoryGame {
             label.htmlFor = `city-${city}`;
             label.textContent = city;
             
+            // Make entire city box clickable
+            cityOption.addEventListener('click', (e) => {
+                // Don't trigger if already disabled (results phase)
+                if (checkbox.disabled) return;
+                
+                // Prevent double-click when clicking directly on checkbox
+                if (e.target === checkbox) return;
+                
+                // Toggle checkbox when clicking anywhere in the box
+                checkbox.checked = !checkbox.checked;
+            });
+            
             cityOption.appendChild(checkbox);
             cityOption.appendChild(label);
             citiesList.appendChild(cityOption);
