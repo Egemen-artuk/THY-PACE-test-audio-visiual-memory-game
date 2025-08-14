@@ -397,17 +397,28 @@ body {
     background: #f8f8f8;
     border: 1px solid #ddd;
     cursor: pointer;
-    transition: background 0.2s ease;
+    transition: all 0.2s ease;
     font-size: 14px;
+    user-select: none; /* Prevent text selection */
+    min-height: 44px; /* Ensure minimum touch target size */
 }
 
 .city-option:hover {
     background: #e8e8e8;
+    border-color: #bbb;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.city-option:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
 }
 
 .city-option input[type="checkbox"] {
     margin-right: 8px;
     transform: scale(1.1);
+    pointer-events: auto; /* Ensure checkbox is still clickable */
 }
 
 .city-option label {
@@ -415,6 +426,9 @@ body {
     flex: 1;
     text-align: left;
     color: #333;
+    pointer-events: none; /* Prevent label from capturing clicks */
+    width: 100%;
+    display: block;
 }
 
 /* Results styling for cities */
