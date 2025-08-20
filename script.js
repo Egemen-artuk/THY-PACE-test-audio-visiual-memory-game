@@ -726,9 +726,9 @@ class AudioVisualMemoryGame {
         const maxRounds = this.getMaxRounds();
         nextRoundContainer.innerHTML = `
             <div class="results-summary">
-                <span class="correct-count">âœ“ ${this.roundResults.correct.length} Correct</span>
+                <span class="correct-count">✓“ ${this.roundResults.correct.length} Correct</span>
                 <span class="missed-count">? ${this.roundResults.missed.length} Missed</span>
-                <span class="incorrect-count">âœ— ${this.roundResults.incorrect.length} Incorrect</span>
+                <span class="incorrect-count">✗ ${this.roundResults.incorrect.length} Incorrect</span>
             </div>
             <div class="round-actions">
                 <button id="next-round-btn" class="action-btn">
@@ -946,3 +946,4 @@ class AudioVisualMemoryGame {
 document.addEventListener('DOMContentLoaded', () => {
     new AudioVisualMemoryGame();
 });
+
