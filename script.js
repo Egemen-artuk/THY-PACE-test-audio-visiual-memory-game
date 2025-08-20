@@ -135,6 +135,10 @@ class AudioVisualMemoryGame {
             this.isExamMode = false;
             this.currentDifficulty = difficulty;
             this.currentRound = 1;
+            
+            // Clean up any leftover exam results before starting new game
+            this.cleanupExamResults();
+            
             document.getElementById('difficulty-display').textContent = `(${difficulty.toUpperCase()})`;
             this.showGameScreen();
             this.startRound();
@@ -158,6 +162,9 @@ class AudioVisualMemoryGame {
         
         // Reset exam tracking
         this.examSectionScores = [];
+        
+        // Clean up any leftover exam results before starting new exam
+        this.cleanupExamResults();
         
         // Start with Round 1
         this.currentDifficulty = 'easy';
@@ -688,12 +695,27 @@ class AudioVisualMemoryGame {
     }
     
     getTimeLimit() {
-        const timeLimits = {
-            easy: 8,
-            medium: 15,
-            hard: 25
-        };
-        return timeLimits[this.currentDifficulty];
+        // Dynamic timing: 4 seconds per target city that needs to be selected
+        const targetCitiesToSelect = this.getTargetCitiesToSelect();
+        const timeLimit = targetCitiesToSelect * 4; // 4 seconds per city
+        
+        console.log(`Dynamic timing: ${targetCitiesToSelect} cities to select = ${timeLimit} seconds`);
+        return timeLimit;
+    }
+    
+    getTargetCitiesToSelect() {
+        // Calculate how many cities the player needs to select (target cities NOT on restricted corridors)
+        if (!this.targetCities || !this.cityCorridorMapping || !this.restrictedCorridors) {
+            // Fallback during initialization
+            return 2;
+        }
+        
+        // Cities that should be memorized (target cities that are NOT on restricted corridors)
+        const citiesToMemorize = this.targetCities.filter(city => 
+            !this.restrictedCorridors.includes(this.cityCorridorMapping[city])
+        );
+        
+        return Math.max(citiesToMemorize.length, 1); // Minimum 1 city (4 seconds)
     }
     
     submitAnswer() {
@@ -1008,16 +1030,17 @@ class AudioVisualMemoryGame {
     }
     
     resetCitiesInterface() {
-        // Reset all city options to normal state
+        // Reset all city options to normal state (only if they exist)
         this.availableCities.forEach(city => {
             const checkbox = document.getElementById(`city-${city}`);
-            const cityOption = checkbox.closest('.city-option');
-            
-            if (checkbox && cityOption) {
-                checkbox.checked = false;
-                checkbox.disabled = false;
-                cityOption.classList.remove('result-correct', 'result-missed', 'result-incorrect');
-                cityOption.style.opacity = '1';
+            if (checkbox) {
+                const cityOption = checkbox.closest('.city-option');
+                if (cityOption) {
+                    checkbox.checked = false;
+                    checkbox.disabled = false;
+                    cityOption.classList.remove('result-correct', 'result-missed', 'result-incorrect');
+                    cityOption.style.opacity = '1';
+                }
             }
         });
         
@@ -1040,6 +1063,20 @@ class AudioVisualMemoryGame {
         const nextRoundContainer = document.getElementById('next-round-container');
         if (nextRoundContainer) {
             nextRoundContainer.remove();
+        }
+        
+        // Remove exam results container (fixes bug where exam completion screen persists in other modes)
+        const examResultsContainer = document.querySelector('.exam-results-container');
+        if (examResultsContainer) {
+            examResultsContainer.remove();
+        }
+    }
+    
+    cleanupExamResults() {
+        // Remove any leftover exam results containers
+        const examResultsContainer = document.querySelector('.exam-results-container');
+        if (examResultsContainer) {
+            examResultsContainer.remove();
         }
     }
     
@@ -1064,6 +1101,9 @@ class AudioVisualMemoryGame {
         // Reset leaderboard tracking
         this.currentPlayerName = '';
         this.examSectionScores = [];
+        
+        // Clean up any leftover exam results UI
+        this.cleanupExamResults();
         
         // Return to difficulty selection screen
         this.showDifficultyScreen();
