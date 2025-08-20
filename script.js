@@ -49,7 +49,7 @@ class AudioVisualMemoryGame {
         this.leaderboard = [];
         this.currentPlayerName = '';
         this.examSectionScores = []; // Track flawless sections
-        this.githubLeaderboardUrl = 'https://api.github.com/repos/YOUR_USERNAME/YOUR_REPO_NAME/contents/leaderboard.json';
+        this.githubLeaderboardUrl = 'https://api.github.com/repos/Egemen-artuk/THY-PACE-test-audio-visiual-memory-game/contents/leaderboard.json';
         this.githubToken = ''; // Will be set by player if they want to submit scores
         
         // Load leaderboard from GitHub
@@ -1285,3 +1285,4 @@ class AudioVisualMemoryGame {
 document.addEventListener('DOMContentLoaded', () => {
     new AudioVisualMemoryGame();
 });
+
