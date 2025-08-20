@@ -11,9 +11,10 @@
   "devDependencies": {},
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git"
+    "url": "git+https://github.com/Egemen-artuk/THY-PACE-test-audio-visiual-memory-game.git"
   },
   "keywords": ["memory", "game", "leaderboard", "github"],
-  "author": "Your Name",
+  "author": "Egemen Artuk",
   "license": "MIT"
 }
+
