@@ -421,7 +421,7 @@ class AudioVisualMemoryGame {
         
         console.log('Corridor spacing applied:', corridorSequence.map(city => 
             `${city} (C${this.cityCorridorMapping[city]})`
-        ).join(' â†’ '));
+        ).join(' → '));
         
         // Debug: Show corridor usage summary
         const usageSummary = {};
@@ -726,7 +726,7 @@ class AudioVisualMemoryGame {
         const maxRounds = this.getMaxRounds();
         nextRoundContainer.innerHTML = `
             <div class="results-summary">
-                <span class="correct-count">✓“ ${this.roundResults.correct.length} Correct</span>
+                <span class="correct-count">✓ ${this.roundResults.correct.length} Correct</span>
                 <span class="missed-count">? ${this.roundResults.missed.length} Missed</span>
                 <span class="incorrect-count">✗ ${this.roundResults.incorrect.length} Incorrect</span>
             </div>
@@ -830,12 +830,12 @@ class AudioVisualMemoryGame {
         newContainer.className = 'exam-results-container';
         newContainer.innerHTML = `
             <div class="exam-complete">
-                <h2>ğŸ“ EXAM COMPLETED</h2>
+                <h2>🎓 EXAM COMPLETED</h2>
                 <div class="exam-summary">
                     <div class="exam-score">
-                        <div class="score-item correct">âœ“ ${this.examProgress.totalScore.correct} Correct</div>
+                        <div class="score-item correct">✓ ${this.examProgress.totalScore.correct} Correct</div>
                         <div class="score-item missed">? ${this.examProgress.totalScore.missed} Missed</div>
-                        <div class="score-item incorrect">âœ— ${this.examProgress.totalScore.incorrect} Incorrect</div>
+                        <div class="score-item incorrect">✗ ${this.examProgress.totalScore.incorrect} Incorrect</div>
                     </div>
                     <div class="exam-grade">
                         <div class="grade-text">Total Score: ${this.examProgress.totalScore.correct}/${this.examProgress.totalScore.correct + this.examProgress.totalScore.missed}</div>
@@ -946,4 +946,3 @@ class AudioVisualMemoryGame {
 document.addEventListener('DOMContentLoaded', () => {
     new AudioVisualMemoryGame();
 });
-
