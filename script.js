@@ -49,7 +49,7 @@ class AudioVisualMemoryGame {
         this.leaderboard = [];
         this.currentPlayerName = '';
         this.examSectionScores = []; // Track flawless sections
-        this.githubLeaderboardUrl = 'https://api.github.com/repos/Egemen-artuk/THY-PACE-test-audio-visiual-memory-game/contents/leaderboard.json';
+        this.githubLeaderboardUrl = 'https://api.github.com/repos/YOUR_USERNAME/YOUR_REPO_NAME/contents/leaderboard.json';
         this.githubToken = ''; // Will be set by player if they want to submit scores
         
         // Load leaderboard from GitHub
@@ -970,6 +970,12 @@ class AudioVisualMemoryGame {
             nextRoundContainer.remove();
         }
         
+        // Check if this was an improvement
+        const existingPlayerIndex = this.leaderboard.findIndex(existing => 
+            existing.name.toLowerCase().trim() === this.currentPlayerName.toLowerCase().trim()
+        );
+        const isImprovement = existingPlayerIndex !== -1 && this.leaderboard[existingPlayerIndex].score < finalScore;
+        
         const newContainer = document.createElement('div');
         newContainer.className = 'exam-results-container';
         newContainer.innerHTML = `
@@ -984,6 +990,7 @@ class AudioVisualMemoryGame {
                     <div class="leaderboard-score">
                         <div class="grade-text">Leaderboard Score: ${finalScore}/${this.examTotalSections} Flawless Sections</div>
                         <div class="grade-text">Your Rank: #${playerRank}</div>
+                        ${isImprovement ? '<div class="improvement-text">🎉 New Personal Best!</div>' : ''}
                     </div>
                 </div>
                 <div class="redirect-message">
@@ -1095,7 +1102,7 @@ class AudioVisualMemoryGame {
     async loadLeaderboardFromGitHub() {
         try {
             // Try to load from GitHub first
-            const response = await fetch('https://raw.githubusercontent.com/Egemen-artuk/THY-PACE-test-audio-visiual-memory-game/main/leaderboard.json');
+            const response = await fetch('https://raw.githubusercontent.com/Egemen-artuk/THY-PACE-test-audio-visiual-memory-game');
             if (response.ok) {
                 const data = await response.text();
                 this.leaderboard = JSON.parse(data);
@@ -1122,19 +1129,87 @@ class AudioVisualMemoryGame {
     promptPlayerName() {
         let name = '';
         while (!name || name.trim().length === 0) {
-            name = prompt('Enter your name for the leaderboard:');
+            name = prompt('Enter your name + first 3 letters of surname:\n(Example: John Smi, Sarah Joh, Mike And)');
             if (name === null) {
                 // User cancelled, return to menu
                 return false;
             }
             name = name.trim();
+            
+            // Validate format (should have at least 4 characters and a space)
+            if (name.length < 4) {
+                alert('Please enter at least your first name + 3 letters of surname\n(Example: John Smi)');
+                name = '';
+                continue;
+            }
+            
+            if (!name.includes(' ')) {
+                alert('Please include a space and your surname letters\n(Example: John Smi, not JohnSmi)');
+                name = '';
+                continue;
+            }
+            
             if (name.length > 20) {
                 alert('Name must be 20 characters or less');
                 name = '';
+                continue;
+            }
+            
+            // Check if this name already exists on the leaderboard
+            const existingPlayer = this.leaderboard.find(entry => 
+                entry.name.toLowerCase().trim() === name.toLowerCase().trim()
+            );
+            
+            if (existingPlayer) {
+                // Show their actual score for confirmation
+                const isReturningPlayer = confirm(
+                    `"${existingPlayer.name}" already exists on the leaderboard.\n\n` +
+                    `🏆 Current best score: ${existingPlayer.score}/${existingPlayer.totalSections} flawless sections\n` +
+                    `📅 Achieved on: ${existingPlayer.date}\n\n` +
+                    `Is this your account?\n\n` +
+                    `• Click OK if this is your score (you can try to improve it)\n` +
+                    `• Click Cancel if this is NOT you (choose a different name)`
+                );
+                
+                if (!isReturningPlayer) {
+                    // They say it's not them - ask for different name
+                    alert('Please enter a different name to avoid confusion.\n\nTry adding middle initial or different surname letters\n(Example: John A Smi, John Smy)');
+                    name = ''; // Reset to ask again
+                    continue;
+                }
+                // If they clicked OK, proceed with the existing name
             }
         }
         this.currentPlayerName = name;
         return true;
+    }
+    
+    generateNameSuggestions(baseName) {
+        const suggestions = [];
+        const cleanName = baseName.trim();
+        
+        // Suggestion 1: Add numbers
+        for (let i = 2; i <= 5; i++) {
+            const suggestion = `${cleanName}${i}`;
+            if (!this.leaderboard.some(entry => 
+                entry.name.toLowerCase() === suggestion.toLowerCase())) {
+                suggestions.push(suggestion);
+                break;
+            }
+        }
+        
+        // Suggestion 2: Add common initials
+        const initials = ['A', 'B', 'C', 'D', 'E', 'J', 'M', 'S'];
+        for (const initial of initials) {
+            const suggestion = `${cleanName} ${initial}`;
+            if (suggestion.length <= 20 && !this.leaderboard.some(entry => 
+                entry.name.toLowerCase() === suggestion.toLowerCase())) {
+                suggestions.push(suggestion);
+                if (suggestions.length >= 3) break;
+            }
+        }
+        
+        return suggestions.slice(0, 3); // Max 3 suggestions
     }
     
     trackSectionScore() {
@@ -1157,14 +1232,41 @@ class AudioVisualMemoryGame {
             totalSections: this.examTotalSections
         };
         
-        this.leaderboard.push(entry);
-        this.leaderboard.sort((a, b) => b.score - a.score); // Sort by score descending
+        // Check if player already exists (case-insensitive)
+        const existingIndex = this.leaderboard.findIndex(existing => 
+            existing.name.toLowerCase().trim() === playerName.toLowerCase().trim()
+        );
+        
+        if (existingIndex === -1) {
+            // New player - add to leaderboard
+            this.leaderboard.push(entry);
+        } else {
+            // Player exists - only update if new score is better
+            if (score > this.leaderboard[existingIndex].score) {
+                this.leaderboard[existingIndex] = entry;
+                console.log(`${playerName} improved their score: ${this.leaderboard[existingIndex].score} → ${score}`);
+            } else {
+                console.log(`${playerName} didn't improve their best score of ${this.leaderboard[existingIndex].score}`);
+            }
+        }
+        
+        // Sort by score descending, then by date for tie-breaking
+        this.leaderboard.sort((a, b) => {
+            if (b.score !== a.score) {
+                return b.score - a.score; // Higher score first
+            }
+            return new Date(a.date) - new Date(b.date); // Earlier date first for same score
+        });
+        
         this.saveLeaderboardToLocal();
         
-        // Try to submit to GitHub (optional)
+        // Try to submit to GitHub (will be processed by GitHub Actions)
         this.submitScoreToGitHub(entry);
         
-        return this.leaderboard.findIndex(entry => entry.name === playerName && entry.score === score) + 1;
+        // Return the player's current rank
+        return this.leaderboard.findIndex(existing => 
+            existing.name.toLowerCase().trim() === playerName.toLowerCase().trim()
+        ) + 1;
     }
     
     async submitScoreToGitHub(entry) {
@@ -1285,5 +1387,3 @@ class AudioVisualMemoryGame {
 document.addEventListener('DOMContentLoaded', () => {
     new AudioVisualMemoryGame();
 });
-
-
