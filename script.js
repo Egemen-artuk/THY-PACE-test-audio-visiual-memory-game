@@ -20,11 +20,40 @@ class AudioVisualMemoryGame {
             totalScore: { correct: 0, missed: 0, incorrect: 0 }
         };
         
+        // New exam structure: 12 rounds with progression 2-2-3-3-4-4-5-5-6-6-7-7
+        this.examRoundConfig = [
+            { targetCities: 2, restrictedCities: 1, difficulty: 'easy' },    // Round 1
+            { targetCities: 2, restrictedCities: 1, difficulty: 'easy' },    // Round 2
+            { targetCities: 3, restrictedCities: 1, difficulty: 'easy' },    // Round 3
+            { targetCities: 3, restrictedCities: 1, difficulty: 'easy' },    // Round 4
+            { targetCities: 4, restrictedCities: 2, difficulty: 'medium' },  // Round 5
+            { targetCities: 4, restrictedCities: 2, difficulty: 'medium' },  // Round 6
+            { targetCities: 5, restrictedCities: 2, difficulty: 'medium' },  // Round 7
+            { targetCities: 5, restrictedCities: 2, difficulty: 'medium' },  // Round 8
+            { targetCities: 6, restrictedCities: 3, difficulty: 'hard' },    // Round 9
+            { targetCities: 6, restrictedCities: 3, difficulty: 'hard' },    // Round 10
+            { targetCities: 7, restrictedCities: 3, difficulty: 'hard' },    // Round 11
+            { targetCities: 7, restrictedCities: 3, difficulty: 'hard' }     // Round 12
+        ];
+        
+        // Total sections for leaderboard (always 12 in exam mode)
+        this.examTotalSections = 12;
+        
         // Audio paths - will be populated when audio files are provided
         this.audioPaths = {
             cities: 'audio/cities/',
             corridors: 'audio/corridors/'
         };
+        
+        // Leaderboard system for exam mode
+        this.leaderboard = [];
+        this.currentPlayerName = '';
+        this.examSectionScores = []; // Track flawless sections
+        this.githubLeaderboardUrl = 'https://api.github.com/repos/YOUR_USERNAME/YOUR_REPO_NAME/contents/leaderboard.json';
+        this.githubToken = ''; // Will be set by player if they want to submit scores
+        
+        // Load leaderboard from GitHub
+        this.loadLeaderboardFromGitHub();
         
         // Available cities list (in exact order from cities.png reference image)
         this.availableCities = [
@@ -68,7 +97,11 @@ class AudioVisualMemoryGame {
         // Difficulty selection
         document.querySelectorAll('.difficulty-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
-                this.selectDifficulty(e.target.dataset.difficulty);
+                if (e.target.id === 'leaderboard-btn') {
+                    this.showLeaderboard();
+                } else {
+                    this.selectDifficulty(e.target.dataset.difficulty);
+                }
             });
         });
         
@@ -109,6 +142,12 @@ class AudioVisualMemoryGame {
     }
     
     startExamMode() {
+        // Prompt for player name first
+        if (!this.promptPlayerName()) {
+            // User cancelled, return to menu
+            return;
+        }
+        
         this.isExamMode = true;
         this.examProgress = {
             currentDifficulty: 'easy',
@@ -117,10 +156,13 @@ class AudioVisualMemoryGame {
             totalScore: { correct: 0, missed: 0, incorrect: 0 }
         };
         
-        // Start with Easy difficulty
+        // Reset exam tracking
+        this.examSectionScores = [];
+        
+        // Start with Round 1
         this.currentDifficulty = 'easy';
         this.currentRound = 1;
-        document.getElementById('difficulty-display').textContent = '(EXAM MODE - EASY)';
+        document.getElementById('difficulty-display').textContent = '(EXAM MODE - Round 1/12 - EASY)';
         this.showGameScreen();
         this.startRound();
     }
@@ -149,6 +191,20 @@ class AudioVisualMemoryGame {
         this.resetCorridors();
         this.hideGamePhases();
         document.getElementById('corridor-container').style.display = 'block';
+        
+        // In exam mode, ensure submit button is hidden and update display
+        if (this.isExamMode) {
+            const submitBtn = document.getElementById('submit-answer');
+            if (submitBtn) {
+                submitBtn.style.display = 'none';
+            }
+            
+            // Update difficulty display to show round progress
+            const currentConfig = this.examRoundConfig[this.currentRound - 1];
+            if (currentConfig) {
+                document.getElementById('difficulty-display').textContent = `(EXAM MODE - Round ${this.currentRound}/12 - ${currentConfig.difficulty.toUpperCase()})`;
+            }
+        }
         
         // Generate round data
         this.generateRoundData();
@@ -249,6 +305,18 @@ class AudioVisualMemoryGame {
     }
     
     getDifficultyConfig() {
+        // In exam mode, use the new 12-round structure
+        if (this.isExamMode) {
+            const examRound = this.examRoundConfig[this.currentRound - 1];
+            if (examRound) {
+                return {
+                    targetCities: examRound.targetCities,
+                    restrictedCities: examRound.restrictedCities
+                };
+            }
+        }
+        
+        // Regular mode - use original difficulty-based configs
         const configs = {
             easy: {
                 // Rounds 1-3: 3 cities mentioned, 2 to remember (1 restricted)
@@ -278,11 +346,7 @@ class AudioVisualMemoryGame {
                 // Rounds 4-6: 10 cities mentioned, 7 to remember (3 on 2 restricted corridors)
                 4: { totalCities: 7, targetCorridors: 5, doubleCorridors: 2, restrictedCities: 3 },
                 5: { totalCities: 7, targetCorridors: 5, doubleCorridors: 2, restrictedCities: 3 },
-                6: { totalCities: 7, targetCorridors: 5, doubleCorridors: 2, restrictedCities: 3 },
-                // Rounds 7-9: 11 cities mentioned, 8 to remember (3 on 2 restricted corridors)
-                7: { totalCities: 8, targetCorridors: 6, doubleCorridors: 2, restrictedCities: 3 },
-                8: { totalCities: 8, targetCorridors: 6, doubleCorridors: 2, restrictedCities: 3 },
-                9: { totalCities: 8, targetCorridors: 6, doubleCorridors: 2, restrictedCities: 3 }
+                6: { totalCities: 7, targetCorridors: 5, doubleCorridors: 2, restrictedCities: 3 }
             }
         };
         
@@ -552,6 +616,12 @@ class AudioVisualMemoryGame {
         
         this.populateCitiesList();
         this.startAnswerTimer();
+        
+        // In exam mode, hide the submit button
+        if (this.isExamMode) {
+            const submitBtn = document.getElementById('submit-answer');
+            submitBtn.style.display = 'none';
+        }
     }
     
     populateCitiesList() {
@@ -588,6 +658,14 @@ class AudioVisualMemoryGame {
             cityOption.appendChild(label);
             citiesList.appendChild(cityOption);
         });
+        
+        // In exam mode, ensure submit button is hidden
+        if (this.isExamMode) {
+            const submitBtn = document.getElementById('submit-answer');
+            if (submitBtn) {
+                submitBtn.style.display = 'none';
+            }
+        }
     }
     
     startAnswerTimer() {
@@ -709,8 +787,13 @@ class AudioVisualMemoryGame {
             }
         });
         
-        // Show next round button
-        this.showNextRoundButton();
+        // In exam mode, auto-advance after showing results
+        if (this.isExamMode) {
+            this.startExamRoundTransition();
+        } else {
+            // Show next round button for regular mode
+            this.showNextRoundButton();
+        }
     }
     
     showNextRoundButton() {
@@ -752,11 +835,77 @@ class AudioVisualMemoryGame {
         });
     }
     
+    startExamRoundTransition() {
+        // Phase 1: 5 seconds to review results (hidden timer)
+        this.timers.examReview = setTimeout(() => {
+            this.showExamCountdown();
+        }, 5000);
+    }
+    
+    showExamCountdown() {
+        // Hide all game elements and show only countdown
+        this.hideAllScreens();
+        
+        // Create countdown screen
+        let countdownScreen = document.getElementById('countdown-screen');
+        if (!countdownScreen) {
+            countdownScreen = document.createElement('div');
+            countdownScreen.id = 'countdown-screen';
+            countdownScreen.className = 'screen';
+            document.getElementById('app').appendChild(countdownScreen);
+        }
+        
+        countdownScreen.classList.add('active');
+        
+        // Start 3-second countdown
+        let countdown = 3;
+        this.updateCountdownDisplay(countdownScreen, countdown);
+        
+        this.timers.countdown = setInterval(() => {
+            countdown--;
+            if (countdown > 0) {
+                this.updateCountdownDisplay(countdownScreen, countdown);
+            } else {
+                clearInterval(this.timers.countdown);
+                this.advanceExamRound();
+            }
+        }, 1000);
+    }
+    
+    updateCountdownDisplay(countdownScreen, count) {
+        countdownScreen.innerHTML = `
+            <div class="countdown-container">
+                <div class="countdown-number">${count}</div>
+                <div class="countdown-text">Next Round Starting...</div>
+            </div>
+        `;
+    }
+    
+    advanceExamRound() {
+        // Remove countdown screen
+        const countdownScreen = document.getElementById('countdown-screen');
+        if (countdownScreen) {
+            countdownScreen.remove();
+        }
+        
+        // Ensure game screen is visible
+        this.showGameScreen();
+        
+        // Advance to next round automatically
+        this.nextRound();
+    }
+    
     getMaxRounds() {
+        // In exam mode, return 12 rounds
+        if (this.isExamMode) {
+            return 12;
+        }
+        
+        // Regular mode - use original difficulty-based configs
         const maxRounds = {
             easy: 6,
             medium: 6,
-            hard: 9
+            hard: 6
         };
         return maxRounds[this.currentDifficulty];
     }
@@ -765,17 +914,20 @@ class AudioVisualMemoryGame {
         const maxRounds = this.getMaxRounds();
         
         if (this.isExamMode) {
+            // Track section score for leaderboard (1 point for flawless section)
+            this.trackSectionScore();
+            
             // Add current round results to total score
             this.examProgress.totalScore.correct += this.roundResults.correct.length;
             this.examProgress.totalScore.missed += this.roundResults.missed.length;
             this.examProgress.totalScore.incorrect += this.roundResults.incorrect.length;
             
             if (this.currentRound >= maxRounds) {
-                // Move to next difficulty or finish exam
-                this.progressExamDifficulty();
+                // Exam complete - show final results
+                this.showExamResults();
                 return;
             } else {
-                // Continue with next round in current difficulty
+                // Continue with next round
                 this.currentRound++;
                 this.clearTimers();
                 this.resetCitiesInterface();
@@ -795,32 +947,24 @@ class AudioVisualMemoryGame {
         }
     }
     
-    progressExamDifficulty() {
-        this.examProgress.currentIndex++;
-        
-        if (this.examProgress.currentIndex >= this.examProgress.difficultiesOrder.length) {
-            // Exam complete - show final results
-            this.showExamResults();
-            return;
-        }
-        
-        // Move to next difficulty
-        const nextDifficulty = this.examProgress.difficultiesOrder[this.examProgress.currentIndex];
-        this.currentDifficulty = nextDifficulty;
-        this.currentRound = 1;
-        
-        document.getElementById('difficulty-display').textContent = `(EXAM MODE - ${nextDifficulty.toUpperCase()})`;
-        
-        this.clearTimers();
-        this.resetCitiesInterface();
-        this.startRound();
-    }
+
+    
+
+    
+
     
     showExamResults() {
         this.gameState = 'exam-complete';
         this.updatePhaseIndicator('Exam Complete');
         
-        // Show final exam results
+        // Track the final section score
+        this.trackSectionScore();
+        
+        // Calculate final leaderboard score and add to leaderboard
+        const finalScore = this.calculateFinalExamScore();
+        const playerRank = this.addToLeaderboard(this.currentPlayerName, finalScore);
+        
+        // Show final exam results briefly before redirecting to leaderboard
         const nextRoundContainer = document.getElementById('next-round-container');
         if (nextRoundContainer) {
             nextRoundContainer.remove();
@@ -837,28 +981,23 @@ class AudioVisualMemoryGame {
                         <div class="score-item missed">? ${this.examProgress.totalScore.missed} Missed</div>
                         <div class="score-item incorrect">✗ ${this.examProgress.totalScore.incorrect} Incorrect</div>
                     </div>
-                    <div class="exam-grade">
-                        <div class="grade-text">Total Score: ${this.examProgress.totalScore.correct}/${this.examProgress.totalScore.correct + this.examProgress.totalScore.missed}</div>
-                        <div class="grade-percentage">${Math.round((this.examProgress.totalScore.correct / (this.examProgress.totalScore.correct + this.examProgress.totalScore.missed)) * 100)}%</div>
+                    <div class="leaderboard-score">
+                        <div class="grade-text">Leaderboard Score: ${finalScore}/${this.examTotalSections} Flawless Sections</div>
+                        <div class="grade-text">Your Rank: #${playerRank}</div>
                     </div>
                 </div>
-                <div class="exam-actions">
-                    <button id="retake-exam-btn" class="action-btn">Retake Exam</button>
-                    <button id="back-to-menu-btn" class="action-btn secondary">Back to Menu</button>
+                <div class="redirect-message">
+                    Redirecting to leaderboard in 3 seconds...
                 </div>
             </div>
         `;
         
         document.querySelector('.cities-interface').appendChild(newContainer);
         
-        // Add event listeners
-        document.getElementById('retake-exam-btn').addEventListener('click', () => {
-            this.startExamMode();
-        });
-        
-        document.getElementById('back-to-menu-btn').addEventListener('click', () => {
-            this.restartGame();
-        });
+        // Redirect to leaderboard after 3 seconds
+        setTimeout(() => {
+            this.showLeaderboard(playerRank);
+        }, 3000);
     }
     
     resetCitiesInterface() {
@@ -881,6 +1020,13 @@ class AudioVisualMemoryGame {
             submitBtn.textContent = 'Submit Answer';
             submitBtn.disabled = false;
             submitBtn.style.opacity = '1';
+            
+            // In exam mode, keep submit button hidden
+            if (this.isExamMode) {
+                submitBtn.style.display = 'none';
+            } else {
+                submitBtn.style.display = 'inline-block';
+            }
         }
         
         // Remove next round container
@@ -907,6 +1053,10 @@ class AudioVisualMemoryGame {
             currentIndex: 0,
             totalScore: { correct: 0, missed: 0, incorrect: 0 }
         };
+        
+        // Reset leaderboard tracking
+        this.currentPlayerName = '';
+        this.examSectionScores = [];
         
         // Return to difficulty selection screen
         this.showDifficultyScreen();
@@ -939,6 +1089,195 @@ class AudioVisualMemoryGame {
     
     updatePhaseIndicator(phase) {
         document.getElementById('phase-indicator').textContent = phase;
+    }
+    
+    // Leaderboard Management Methods
+    async loadLeaderboardFromGitHub() {
+        try {
+            // Try to load from GitHub first
+            const response = await fetch('https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO_NAME/main/leaderboard.json');
+            if (response.ok) {
+                const data = await response.text();
+                this.leaderboard = JSON.parse(data);
+                console.log('Leaderboard loaded from GitHub:', this.leaderboard.length, 'entries');
+            } else {
+                // Fallback to local storage if GitHub fails
+                this.loadLeaderboardFromLocal();
+            }
+        } catch (error) {
+            console.log('GitHub leaderboard unavailable, using local storage:', error);
+            this.loadLeaderboardFromLocal();
+        }
+    }
+    
+    loadLeaderboardFromLocal() {
+        const saved = localStorage.getItem('audioVisualGameLeaderboard');
+        this.leaderboard = saved ? JSON.parse(saved) : [];
+    }
+    
+    saveLeaderboardToLocal() {
+        localStorage.setItem('audioVisualGameLeaderboard', JSON.stringify(this.leaderboard));
+    }
+    
+    promptPlayerName() {
+        let name = '';
+        while (!name || name.trim().length === 0) {
+            name = prompt('Enter your name for the leaderboard:');
+            if (name === null) {
+                // User cancelled, return to menu
+                return false;
+            }
+            name = name.trim();
+            if (name.length > 20) {
+                alert('Name must be 20 characters or less');
+                name = '';
+            }
+        }
+        this.currentPlayerName = name;
+        return true;
+    }
+    
+    trackSectionScore() {
+        // Calculate if this section was flawless (no missed or incorrect answers)
+        const isFlawless = this.roundResults.missed.length === 0 && this.roundResults.incorrect.length === 0;
+        this.examSectionScores.push(isFlawless ? 1 : 0);
+        
+        console.log(`Section ${this.examSectionScores.length}: ${isFlawless ? 'Flawless' : 'Has errors'}`);
+    }
+    
+    calculateFinalExamScore() {
+        return this.examSectionScores.reduce((total, score) => total + score, 0);
+    }
+    
+    addToLeaderboard(playerName, score) {
+        const entry = {
+            name: playerName,
+            score: score,
+            date: new Date().toLocaleDateString(),
+            totalSections: this.examTotalSections
+        };
+        
+        this.leaderboard.push(entry);
+        this.leaderboard.sort((a, b) => b.score - a.score); // Sort by score descending
+        this.saveLeaderboardToLocal();
+        
+        // Try to submit to GitHub (optional)
+        this.submitScoreToGitHub(entry);
+        
+        return this.leaderboard.findIndex(entry => entry.name === playerName && entry.score === score) + 1;
+    }
+    
+    async submitScoreToGitHub(entry) {
+        try {
+            // Generate a unique filename for this submission
+            const timestamp = Date.now();
+            const filename = `score_${entry.name.replace(/[^a-zA-Z0-9]/g, '_')}_${timestamp}.json`;
+            
+            // Create submission data
+            const submissionData = {
+                message: `Add score submission: ${entry.name} - ${entry.score}/${entry.totalSections}`,
+                content: btoa(JSON.stringify(entry, null, 2)), // Base64 encode
+                path: `leaderboard-submissions/${filename}`
+            };
+            
+            // Submit to GitHub repository (this will trigger the GitHub Actions workflow)
+            const response = await fetch(this.githubLeaderboardUrl.replace('/contents/leaderboard.json', `/contents/leaderboard-submissions/${filename}`), {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(submissionData)
+            });
+            
+            if (response.ok) {
+                console.log('Score submitted to GitHub successfully');
+                return true;
+            } else {
+                console.log('GitHub submission failed, score saved locally only');
+                return false;
+            }
+        } catch (error) {
+            console.log('GitHub submission error, score saved locally only:', error);
+            return false;
+        }
+    }
+    
+    showLeaderboard(playerRank = null) {
+        this.hideAllScreens();
+        
+        // Create leaderboard screen if it doesn't exist
+        let leaderboardScreen = document.getElementById('leaderboard-screen');
+        if (!leaderboardScreen) {
+            leaderboardScreen = document.createElement('div');
+            leaderboardScreen.id = 'leaderboard-screen';
+            leaderboardScreen.className = 'screen';
+            document.getElementById('app').appendChild(leaderboardScreen);
+        }
+        
+        leaderboardScreen.classList.add('active');
+        
+        const top10 = this.leaderboard.slice(0, 10);
+        const currentPlayerEntry = playerRank ? this.leaderboard[playerRank - 1] : null;
+        
+        leaderboardScreen.innerHTML = `
+            <div class="leaderboard-container">
+                <h1>🏆 LEADERBOARD</h1>
+                <div class="leaderboard-subtitle">Top Exam Performers</div>
+                <div class="leaderboard-info">
+                    <span class="last-updated">Last updated: ${new Date().toLocaleString()}</span>
+                    <button id="refresh-leaderboard-btn" class="refresh-btn">🔄 Refresh</button>
+                </div>
+                
+                <div class="leaderboard-list">
+                    ${top10.map((entry, index) => `
+                        <div class="leaderboard-entry ${currentPlayerEntry && entry.name === currentPlayerEntry.name && entry.score === currentPlayerEntry.score ? 'current-player' : ''}">
+                            <div class="rank">#${index + 1}</div>
+                            <div class="player-info">
+                                <div class="player-name">${entry.name}</div>
+                                <div class="player-date">${entry.date}</div>
+                            </div>
+                            <div class="player-score">${entry.score}/${entry.totalSections}</div>
+                        </div>
+                    `).join('')}
+                    
+                    ${this.leaderboard.length === 0 ? '<div class="no-scores">No scores yet. Be the first to complete the exam!</div>' : ''}
+                </div>
+                
+                ${playerRank && playerRank > 10 ? `
+                    <div class="player-rank-section">
+                        <h3>Your Ranking</h3>
+                        <div class="leaderboard-entry current-player">
+                            <div class="rank">#${playerRank}</div>
+                            <div class="player-info">
+                                <div class="player-name">${currentPlayerEntry.name}</div>
+                                <div class="player-date">${currentPlayerEntry.date}</div>
+                            </div>
+                            <div class="player-score">${currentPlayerEntry.score}/${currentPlayerEntry.totalSections}</div>
+                        </div>
+                    </div>
+                ` : ''}
+                
+                <div class="leaderboard-actions">
+                    <button id="take-exam-btn" class="action-btn">Take Exam</button>
+                    <button id="back-to-menu-btn" class="action-btn secondary">Back to Menu</button>
+                </div>
+            </div>
+        `;
+        
+        // Add event listeners
+        document.getElementById('take-exam-btn').addEventListener('click', () => {
+            this.selectDifficulty('exam');
+        });
+        
+        document.getElementById('back-to-menu-btn').addEventListener('click', () => {
+            this.showDifficultyScreen();
+        });
+        
+        document.getElementById('refresh-leaderboard-btn').addEventListener('click', () => {
+            this.loadLeaderboardFromGitHub().then(() => {
+                this.showLeaderboard(playerRank);
+            });
+        });
     }
 }
 

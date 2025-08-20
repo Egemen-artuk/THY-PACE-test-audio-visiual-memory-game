@@ -1,14 +1,39 @@
-# Audio Visual Memory Game
+# 🎮 Audio Visual Memory Game
 
-A web-based memory game that tests players' ability to remember city announcements and their corridor assignments while avoiding restricted corridors.
+A web-based memory game that tests players' ability to remember city announcements and their corridor assignments while avoiding restricted corridors. Features a **global leaderboard system** powered by GitHub for worldwide competition!
 
-## How to Play
+## 🚀 Quick Start
 
-1. **Select Difficulty**: Choose from Easy, Medium, or Hard difficulty levels
-2. **Visual Phase**: Study the corridor layout and note which corridors are painted red (restricted)
-3. **Audio Phase**: Listen to city and corridor announcements
-4. **Answer Phase**: Select the cities you remember that were NOT announced for restricted corridors
-5. **Results**: See your performance and continue to the next round
+### For Players
+1. Visit the game website
+2. Choose **"Exam"** mode to compete on the global leaderboard
+3. Enter your name and complete all 12 rounds
+4. See your score appear on the worldwide leaderboard!
+
+### For Developers/Publishers
+1. **Clone this repository**
+2. **Run setup**: `npm run setup` (configures your GitHub repo)
+3. **Push to GitHub** and enable Actions
+4. **Deploy** to any static hosting platform
+5. **Players worldwide** can now compete on your leaderboard!
+
+## 🎯 How to Play
+
+### Game Modes
+- **🏆 Exam Mode**: 12 rounds (Easy→Medium→Hard) - compete globally!
+- **📚 Practice Modes**: Easy, Medium, or Hard - practice individual difficulties
+
+### Gameplay
+1. **Visual Phase**: Study the corridor layout and note which corridors are red (restricted)
+2. **Audio Phase**: Listen to city and corridor announcements
+3. **Answer Phase**: Select cities you remember that were NOT on restricted corridors
+4. **Results**: See your performance and continue to the next round
+
+### 🏆 Leaderboard System
+- **Global Competition**: All players see the same real-time leaderboard
+- **Flawless Scoring**: Get 1 point for each perfect round (max 12 points)
+- **Automatic Updates**: Scores update instantly via GitHub Actions
+- **Persistent Storage**: Leaderboard stored in GitHub, accessible worldwide
 
 ## Difficulty Levels
 
@@ -111,14 +136,70 @@ audio/
 - HTML5 Audio API support required
 - Local file serving recommended for development
 
-## Development
+## 🛠️ Setup & Development
 
-To run the game locally:
+### Initial Setup
+1. **Clone the repository**
+2. **Configure for your GitHub repo**:
+   ```bash
+   npm run setup
+   ```
+   This will prompt you for:
+   - GitHub username
+   - Repository name  
+   - Your name (for package.json)
 
+3. **Commit and push to GitHub**:
+   ```bash
+   git add .
+   git commit -m "Configure repository for leaderboard system"
+   git push origin main
+   ```
+
+4. **Enable GitHub Actions**:
+   - Go to your repository on GitHub
+   - Click the "Actions" tab
+   - Click "Enable Actions" if prompted
+
+### Local Development
 1. Place all files in a directory
 2. Add .opus audio files to the `audio/` subdirectories
-3. Serve the files through a local web server (due to CORS restrictions)
+3. Serve files through a local web server (due to CORS restrictions)
 4. Open `index.html` in a modern web browser
 
-The game will work without audio files but will log audio attempts to the console for testing purposes. 
+### 🌐 Deployment Options
+- **Netlify**: Automatic deployment with `netlify.toml` config
+- **Vercel**: Automatic deployment with `vercel.json` config  
+- **GitHub Pages**: Enable in repository settings
+- **Any static host**: Just upload all files
 
+### 🏆 Leaderboard Architecture
+- **GitHub Actions**: Automatically processes new scores
+- **JSON Storage**: Leaderboard stored as `leaderboard.json` in repo
+- **Real-time Updates**: Players see latest scores immediately
+- **Global Access**: Anyone can view/refresh the leaderboard
+
+The game will work without audio files but will log audio attempts to the console for testing purposes.
+
+## 📁 File Structure
+```
+audio-visual-project/
+├── 📂 .github/workflows/     # GitHub Actions for leaderboard
+├── 📂 audio/                 # Audio files (.opus format)
+├── 📂 leaderboard-submissions/ # Temporary score submissions
+├── 📂 scripts/               # Leaderboard update scripts
+├── 🎮 index.html             # Main game interface
+├── 🎨 styles.css             # Game styling
+├── ⚙️ script.js              # Game logic + leaderboard
+├── 📊 leaderboard.json       # Global leaderboard data
+├── 🚀 setup-repository.js    # Auto-configuration script
+└── 📖 LEADERBOARD_SETUP.md   # Detailed setup guide
+```
+
+## 🎯 Key Features
+- ✅ **Global Leaderboard** - Real-time worldwide competition
+- ✅ **GitHub-Powered** - No server required, runs on GitHub
+- ✅ **Automatic Updates** - Scores sync automatically  
+- ✅ **Mobile Responsive** - Works on all devices
+- ✅ **Audio Support** - Immersive .opus audio playback
+- ✅ **Zero Dependencies** - Pure HTML/CSS/JavaScript

@@ -86,6 +86,12 @@ body {
     position: relative;
 }
 
+.difficulty-btn.leaderboard-btn {
+    background: linear-gradient(45deg, #ff9800, #f57c00);
+    font-size: 1.3em;
+    margin-top: 10px;
+}
+
 /* Game Screen */
 .game-header {
     display: flex;
@@ -665,6 +671,215 @@ body {
     background: #616161;
 }
 
+/* Leaderboard Styles */
+.leaderboard-container {
+    max-width: 800px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.leaderboard-container h1 {
+    color: #333;
+    margin-bottom: 10px;
+    font-size: 2.5em;
+}
+
+.leaderboard-subtitle {
+    color: #666;
+    margin-bottom: 20px;
+    font-size: 1.2em;
+}
+
+.leaderboard-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f8f8f8;
+    padding: 15px 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-size: 0.9em;
+}
+
+.last-updated {
+    color: #666;
+}
+
+.refresh-btn {
+    background: #2196F3;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9em;
+    transition: all 0.3s ease;
+}
+
+.refresh-btn:hover {
+    background: #1976D2;
+    transform: translateY(-1px);
+}
+
+.leaderboard-list {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 30px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.leaderboard-entry {
+    display: flex;
+    align-items: center;
+    padding: 15px 20px;
+    border-bottom: 1px solid #eee;
+    transition: all 0.3s ease;
+}
+
+.leaderboard-entry:last-child {
+    border-bottom: none;
+}
+
+.leaderboard-entry:hover {
+    background: #f8f8f8;
+}
+
+.leaderboard-entry.current-player {
+    background: linear-gradient(45deg, #4CAF50, #45a049);
+    color: white;
+    font-weight: bold;
+    border-radius: 8px;
+    margin: 5px 0;
+}
+
+.leaderboard-entry.current-player:hover {
+    background: linear-gradient(45deg, #45a049, #4CAF50);
+}
+
+.leaderboard-entry .rank {
+    font-size: 1.5em;
+    font-weight: bold;
+    color: #ff9800;
+    min-width: 60px;
+    text-align: left;
+}
+
+.leaderboard-entry.current-player .rank {
+    color: white;
+}
+
+.leaderboard-entry .player-info {
+    flex: 1;
+    text-align: left;
+    margin-left: 20px;
+}
+
+.leaderboard-entry .player-name {
+    font-size: 1.2em;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.leaderboard-entry .player-date {
+    font-size: 0.9em;
+    color: #666;
+}
+
+.leaderboard-entry.current-player .player-date {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.leaderboard-entry .player-score {
+    font-size: 1.3em;
+    font-weight: bold;
+    color: #2196F3;
+    min-width: 80px;
+    text-align: right;
+}
+
+.leaderboard-entry.current-player .player-score {
+    color: white;
+}
+
+.player-rank-section {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 30px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.player-rank-section h3 {
+    color: #333;
+    margin-bottom: 15px;
+    font-size: 1.5em;
+}
+
+.leaderboard-actions {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+}
+
+.no-scores {
+    color: #666;
+    font-style: italic;
+    padding: 40px 20px;
+    font-size: 1.1em;
+}
+
+.redirect-message {
+    color: #666;
+    font-style: italic;
+    margin-top: 20px;
+    font-size: 1.1em;
+}
+
+.leaderboard-score {
+    border-top: 2px solid rgba(255,255,255,0.3);
+    padding-top: 20px;
+    margin-top: 20px;
+}
+
+.leaderboard-score .grade-text {
+    font-size: 1.3em;
+    margin-bottom: 10px;
+    font-weight: bold;
+}
+
+/* Exam Countdown Styles */
+.countdown-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    text-align: center;
+}
+
+.countdown-number {
+    font-size: 15em;
+    font-weight: bold;
+    margin-bottom: 20px;
+    text-shadow: 4px 4px 8px rgba(0,0,0,0.3);
+    animation: pulse 1s ease-in-out infinite;
+}
+
+.countdown-text {
+    font-size: 2.5em;
+    font-weight: 300;
+    opacity: 0.9;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
 /* Utility Classes */
 .hidden {
     display: none !important;
@@ -755,5 +970,28 @@ body {
     
     .corridor-layout {
         padding: 10px;
+    }
+    
+    .leaderboard-entry {
+        flex-direction: column;
+        text-align: center;
+        gap: 10px;
+    }
+    
+    .leaderboard-entry .player-info {
+        margin-left: 0;
+        text-align: center;
+    }
+    
+    .leaderboard-actions {
+        flex-direction: column;
+    }
+    
+    .countdown-number {
+        font-size: 8em;
+    }
+    
+    .countdown-text {
+        font-size: 1.8em;
     }
 }
