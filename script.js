@@ -49,7 +49,7 @@ class AudioVisualMemoryGame {
         this.leaderboard = [];
         this.currentPlayerName = '';
         this.examSectionScores = []; // Track flawless sections
-        this.githubLeaderboardUrl = 'https://api.github.com/repos/YOUR_USERNAME/YOUR_REPO_NAME/contents/leaderboard.json';
+        this.githubLeaderboardUrl = 'https://api.github.com/repos/Egemen-artuk/THY-PACE-test-audio-visiual-memory-game/contents/leaderboard.json';
         this.githubToken = ''; // Will be set by player if they want to submit scores
         
         // Load leaderboard from GitHub
@@ -1142,17 +1142,28 @@ class AudioVisualMemoryGame {
     async loadLeaderboardFromGitHub() {
         try {
             // Try to load from GitHub first
-            const response = await fetch('https://raw.githubusercontent.com/Egemen-artuk/THY-PACE-test-audio-visiual-memory-game');
+            const response = await fetch('https://raw.githubusercontent.com/Egemen-artuk/THY-PACE-test-audio-visiual-memory-game/main/leaderboard.json', {
+                cache: 'no-cache', // Always fetch fresh data
+                headers: {
+                    'Cache-Control': 'no-cache'
+                }
+            });
+            
             if (response.ok) {
                 const data = await response.text();
-                this.leaderboard = JSON.parse(data);
-                console.log('Leaderboard loaded from GitHub:', this.leaderboard.length, 'entries');
-            } else {
-                // Fallback to local storage if GitHub fails
-                this.loadLeaderboardFromLocal();
+                if (data.trim()) {
+                    const githubLeaderboard = JSON.parse(data);
+                    // Merge with local data to ensure we don't lose any local scores
+                    this.mergeLeaderboards(githubLeaderboard);
+                    console.log('Leaderboard loaded from GitHub:', this.leaderboard.length, 'entries');
+                    return;
+                }
             }
+            
+            console.log('GitHub leaderboard not available or empty, using local storage');
+            this.loadLeaderboardFromLocal();
         } catch (error) {
-            console.log('GitHub leaderboard unavailable, using local storage:', error);
+            console.log('GitHub leaderboard unavailable, using local storage:', error.message);
             this.loadLeaderboardFromLocal();
         }
     }
@@ -1160,6 +1171,41 @@ class AudioVisualMemoryGame {
     loadLeaderboardFromLocal() {
         const saved = localStorage.getItem('audioVisualGameLeaderboard');
         this.leaderboard = saved ? JSON.parse(saved) : [];
+    }
+    
+    mergeLeaderboards(githubLeaderboard) {
+        // Load local leaderboard first
+        this.loadLeaderboardFromLocal();
+        const localLeaderboard = [...this.leaderboard];
+        
+        // Start with GitHub data as the base
+        this.leaderboard = [...githubLeaderboard];
+        
+        // Merge any local scores that might not be on GitHub yet
+        localLeaderboard.forEach(localEntry => {
+            const existingIndex = this.leaderboard.findIndex(entry => 
+                entry.name.toLowerCase().trim() === localEntry.name.toLowerCase().trim()
+            );
+            
+            if (existingIndex === -1) {
+                // Local entry doesn't exist on GitHub, add it
+                this.leaderboard.push(localEntry);
+            } else if (localEntry.score > this.leaderboard[existingIndex].score) {
+                // Local score is better than GitHub score, use local
+                this.leaderboard[existingIndex] = localEntry;
+            }
+        });
+        
+        // Re-sort the merged leaderboard
+        this.leaderboard.sort((a, b) => {
+            if (b.score !== a.score) {
+                return b.score - a.score; // Higher score first
+            }
+            return new Date(a.date) - new Date(b.date); // Earlier date first for same score
+        });
+        
+        // Save the merged result locally
+        this.saveLeaderboardToLocal();
     }
     
     saveLeaderboardToLocal() {
@@ -1310,38 +1356,10 @@ class AudioVisualMemoryGame {
     }
     
     async submitScoreToGitHub(entry) {
-        try {
-            // Generate a unique filename for this submission
-            const timestamp = Date.now();
-            const filename = `score_${entry.name.replace(/[^a-zA-Z0-9]/g, '_')}_${timestamp}.json`;
-            
-            // Create submission data
-            const submissionData = {
-                message: `Add score submission: ${entry.name} - ${entry.score}/${entry.totalSections}`,
-                content: btoa(JSON.stringify(entry, null, 2)), // Base64 encode
-                path: `leaderboard-submissions/${filename}`
-            };
-            
-            // Submit to GitHub repository (this will trigger the GitHub Actions workflow)
-            const response = await fetch(this.githubLeaderboardUrl.replace('/contents/leaderboard.json', `/contents/leaderboard-submissions/${filename}`), {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(submissionData)
-            });
-            
-            if (response.ok) {
-                console.log('Score submitted to GitHub successfully');
-                return true;
-            } else {
-                console.log('GitHub submission failed, score saved locally only');
-                return false;
-            }
-        } catch (error) {
-            console.log('GitHub submission error, score saved locally only:', error);
-            return false;
-        }
+        // Note: Direct GitHub API submission from client-side is not possible without authentication
+        // The leaderboard will sync through the GitHub repository when the leaderboard.json file is updated
+        console.log('Score saved locally. GitHub sync will happen when leaderboard.json is updated in the repository.');
+        return false; // Always return false since client-side submission is not supported
     }
     
     showLeaderboard(playerRank = null) {
