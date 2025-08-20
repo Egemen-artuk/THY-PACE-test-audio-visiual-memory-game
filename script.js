@@ -1095,7 +1095,7 @@ class AudioVisualMemoryGame {
     async loadLeaderboardFromGitHub() {
         try {
             // Try to load from GitHub first
-            const response = await fetch('https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO_NAME/main/leaderboard.json');
+            const response = await fetch('https://raw.githubusercontent.com/Egemen-artuk/THY-PACE-test-audio-visiual-memory-game/main/leaderboard.json');
             if (response.ok) {
                 const data = await response.text();
                 this.leaderboard = JSON.parse(data);
@@ -1285,4 +1285,5 @@ class AudioVisualMemoryGame {
 document.addEventListener('DOMContentLoaded', () => {
     new AudioVisualMemoryGame();
 });
+
 
