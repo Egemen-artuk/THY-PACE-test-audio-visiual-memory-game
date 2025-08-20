@@ -421,7 +421,7 @@ class AudioVisualMemoryGame {
         
         console.log('Corridor spacing applied:', corridorSequence.map(city => 
             `${city} (C${this.cityCorridorMapping[city]})`
-        ).join(' → '));
+        ).join(' â†’ '));
         
         // Debug: Show corridor usage summary
         const usageSummary = {};
@@ -490,17 +490,17 @@ class AudioVisualMemoryGame {
         // NO progress bar - no visual assistance at all
         
         // Play audio files - players must rely only on hearing
-        this.playAudioSequence(city, corridor);
+        this.playAudioSequence(city, corridor, () => {
+            // Schedule next announcement after 1.5 seconds pause
+            this.timers.audio = setTimeout(() => {
+                this.playNextAnnouncement();
+            }, 1500); // 1.5 second pause
+        });
         
         this.currentAnnouncementIndex++;
-        
-        // Schedule next announcement after 3 seconds
-        this.timers.audio = setTimeout(() => {
-            this.playNextAnnouncement();
-        }, 3000);
     }
     
-    playAudioSequence(city, corridor) {
+    playAudioSequence(city, corridor, onCompleteCallback) {
         // Play the city audio file followed by corridor audio file
         console.log(`Playing: ${city}.opus then corridor_${corridor}.opus`);
         
@@ -510,15 +510,36 @@ class AudioVisualMemoryGame {
         // Play city audio first, then corridor audio immediately after
         cityAudio.play().then(() => {
             cityAudio.addEventListener('ended', () => {
-                corridorAudio.play().catch(error => {
+                corridorAudio.play().then(() => {
+                    // Call the callback when corridor audio finishes
+                    corridorAudio.addEventListener('ended', () => {
+                        if (onCompleteCallback) {
+                            onCompleteCallback();
+                        }
+                    });
+                }).catch(error => {
                     console.error('Corridor audio playback error:', error);
+                    // Call callback even if corridor audio fails
+                    if (onCompleteCallback) {
+                        onCompleteCallback();
+                    }
                 });
             });
         }).catch(error => {
             console.error('City audio playback error:', error);
             // If city audio fails, still try to play corridor audio
-            corridorAudio.play().catch(corridorError => {
+            corridorAudio.play().then(() => {
+                corridorAudio.addEventListener('ended', () => {
+                    if (onCompleteCallback) {
+                        onCompleteCallback();
+                    }
+                });
+            }).catch(corridorError => {
                 console.error('Corridor audio playback error:', corridorError);
+                // Call callback even if both audios fail
+                if (onCompleteCallback) {
+                    onCompleteCallback();
+                }
             });
         });
     }
@@ -705,9 +726,9 @@ class AudioVisualMemoryGame {
         const maxRounds = this.getMaxRounds();
         nextRoundContainer.innerHTML = `
             <div class="results-summary">
-                <span class="correct-count">✓ ${this.roundResults.correct.length} Correct</span>
+                <span class="correct-count">âœ“ ${this.roundResults.correct.length} Correct</span>
                 <span class="missed-count">? ${this.roundResults.missed.length} Missed</span>
-                <span class="incorrect-count">✗ ${this.roundResults.incorrect.length} Incorrect</span>
+                <span class="incorrect-count">âœ— ${this.roundResults.incorrect.length} Incorrect</span>
             </div>
             <div class="round-actions">
                 <button id="next-round-btn" class="action-btn">
@@ -809,12 +830,12 @@ class AudioVisualMemoryGame {
         newContainer.className = 'exam-results-container';
         newContainer.innerHTML = `
             <div class="exam-complete">
-                <h2>🎓 EXAM COMPLETED</h2>
+                <h2>ğŸ“ EXAM COMPLETED</h2>
                 <div class="exam-summary">
                     <div class="exam-score">
-                        <div class="score-item correct">✓ ${this.examProgress.totalScore.correct} Correct</div>
+                        <div class="score-item correct">âœ“ ${this.examProgress.totalScore.correct} Correct</div>
                         <div class="score-item missed">? ${this.examProgress.totalScore.missed} Missed</div>
-                        <div class="score-item incorrect">✗ ${this.examProgress.totalScore.incorrect} Incorrect</div>
+                        <div class="score-item incorrect">âœ— ${this.examProgress.totalScore.incorrect} Incorrect</div>
                     </div>
                     <div class="exam-grade">
                         <div class="grade-text">Total Score: ${this.examProgress.totalScore.correct}/${this.examProgress.totalScore.correct + this.examProgress.totalScore.missed}</div>
