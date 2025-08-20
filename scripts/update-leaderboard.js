@@ -43,25 +43,34 @@ function mergeLeaderboard(existing, submissions) {
     const merged = [...existing];
     
     submissions.forEach(submission => {
-        // Check if player already exists
+        // Check if player name already exists (regardless of date)
         const existingIndex = merged.findIndex(entry => 
-            entry.name === submission.name && 
-            entry.date === submission.date
+            entry.name.toLowerCase().trim() === submission.name.toLowerCase().trim()
         );
         
         if (existingIndex === -1) {
-            // Add new submission
+            // Add new player
             merged.push(submission);
+            console.log(`Added new player: ${submission.name} with score ${submission.score}`);
         } else {
-            // Update existing entry if score is better
+            // Player exists - only update if new score is better
             if (submission.score > merged[existingIndex].score) {
+                const oldScore = merged[existingIndex].score;
                 merged[existingIndex] = submission;
+                console.log(`Updated ${submission.name}: ${oldScore} → ${submission.score} (improved!)`);
+            } else {
+                console.log(`Kept existing score for ${submission.name}: ${merged[existingIndex].score} (better than ${submission.score})`);
             }
         }
     });
     
-    // Sort by score descending
-    merged.sort((a, b) => b.score - a.score);
+    // Sort by score descending, then by date for tie-breaking
+    merged.sort((a, b) => {
+        if (b.score !== a.score) {
+            return b.score - a.score; // Higher score first
+        }
+        return new Date(a.date) - new Date(b.date); // Earlier date first for same score
+    });
     
     return merged;
 }
