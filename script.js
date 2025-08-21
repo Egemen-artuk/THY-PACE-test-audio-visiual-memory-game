@@ -1176,7 +1176,7 @@ class AudioVisualMemoryGame {
             
             // Get leaderboard data from Firestore
             const leaderboardRef = collection(this.db, 'leaderboard');
-            const q = query(leaderboardRef, orderBy('score', 'desc'), orderBy('timestamp', 'asc'), limit(100));
+            const q = query(leaderboardRef, orderBy('score', 'desc'), limit(100));
             const querySnapshot = await getDocs(q);
             
             this.leaderboard = [];
