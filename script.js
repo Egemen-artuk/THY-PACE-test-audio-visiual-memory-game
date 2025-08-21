@@ -49,11 +49,11 @@ class AudioVisualMemoryGame {
         this.leaderboard = [];
         this.currentPlayerName = '';
         this.examSectionScores = []; // Track flawless sections
-        this.githubLeaderboardUrl = 'https://api.github.com/repos/Egemen-artuk/THY-PACE-test-audio-visiual-memory-game/contents/leaderboard.json';
-        this.githubToken = ''; // Will be set by player if they want to submit scores
+        this.firebaseInitialized = false;
+        this.db = null;
         
-        // Load leaderboard from GitHub
-        this.loadLeaderboardFromGitHub();
+        // Initialize Firebase and load leaderboard
+        this.initializeFirebaseAndLoadLeaderboard();
         
         // Available cities list (in exact order from cities.png reference image)
         this.availableCities = [
@@ -1138,32 +1138,64 @@ class AudioVisualMemoryGame {
         document.getElementById('phase-indicator').textContent = phase;
     }
     
-    // Leaderboard Management Methods
-    async loadLeaderboardFromGitHub() {
+    // Firebase and Leaderboard Management Methods
+    async initializeFirebaseAndLoadLeaderboard() {
         try {
-            // Try to load from GitHub first
-            const response = await fetch('https://raw.githubusercontent.com/Egemen-artuk/THY-PACE-test-audio-visiual-memory-game/main/leaderboard.json', {
-                cache: 'no-cache', // Always fetch fresh data
-                headers: {
-                    'Cache-Control': 'no-cache'
-                }
+            if (typeof window.initializeFirebase === 'function') {
+                const firebaseApp = await window.initializeFirebase();
+                this.db = firebaseApp.db;
+                this.firebaseInitialized = true;
+                console.log('Firebase initialized successfully');
+                
+                // Load leaderboard from Firebase
+                await this.loadLeaderboardFromFirebase();
+            } else {
+                console.log('Firebase not available, falling back to local storage');
+                this.loadLeaderboardFromLocal();
+            }
+        } catch (error) {
+            console.error('Firebase initialization failed, using local storage:', error);
+            this.firebaseInitialized = false;
+            this.loadLeaderboardFromLocal();
+        }
+    }
+    
+    async loadLeaderboardFromFirebase() {
+        if (!this.firebaseInitialized || !this.db) {
+            this.loadLeaderboardFromLocal();
+            return;
+        }
+        
+        try {
+            // Import Firestore functions
+            const { collection, getDocs, query, orderBy, limit } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+            
+            // Get leaderboard data from Firestore
+            const leaderboardRef = collection(this.db, 'leaderboard');
+            const q = query(leaderboardRef, orderBy('score', 'desc'), orderBy('timestamp', 'asc'), limit(100));
+            const querySnapshot = await getDocs(q);
+            
+            this.leaderboard = [];
+            querySnapshot.forEach((doc) => {
+                const data = doc.data();
+                this.leaderboard.push({
+                    id: doc.id,
+                    name: data.name,
+                    score: data.score,
+                    date: data.date,
+                    totalSections: data.totalSections,
+                    timestamp: data.timestamp
+                });
             });
             
-            if (response.ok) {
-                const data = await response.text();
-                if (data.trim()) {
-                    const githubLeaderboard = JSON.parse(data);
-                    // Merge with local data to ensure we don't lose any local scores
-                    this.mergeLeaderboards(githubLeaderboard);
-                    console.log('Leaderboard loaded from GitHub:', this.leaderboard.length, 'entries');
-                    return;
-                }
-            }
+            console.log('Leaderboard loaded from Firebase:', this.leaderboard.length, 'entries');
             
-            console.log('GitHub leaderboard not available or empty, using local storage');
-            this.loadLeaderboardFromLocal();
+            // Also save to local storage as backup
+            this.saveLeaderboardToLocal();
+            
         } catch (error) {
-            console.log('GitHub leaderboard unavailable, using local storage:', error.message);
+            console.error('Failed to load leaderboard from Firebase:', error);
+            // Fallback to local storage
             this.loadLeaderboardFromLocal();
         }
     }
@@ -1171,41 +1203,7 @@ class AudioVisualMemoryGame {
     loadLeaderboardFromLocal() {
         const saved = localStorage.getItem('audioVisualGameLeaderboard');
         this.leaderboard = saved ? JSON.parse(saved) : [];
-    }
-    
-    mergeLeaderboards(githubLeaderboard) {
-        // Load local leaderboard first
-        this.loadLeaderboardFromLocal();
-        const localLeaderboard = [...this.leaderboard];
-        
-        // Start with GitHub data as the base
-        this.leaderboard = [...githubLeaderboard];
-        
-        // Merge any local scores that might not be on GitHub yet
-        localLeaderboard.forEach(localEntry => {
-            const existingIndex = this.leaderboard.findIndex(entry => 
-                entry.name.toLowerCase().trim() === localEntry.name.toLowerCase().trim()
-            );
-            
-            if (existingIndex === -1) {
-                // Local entry doesn't exist on GitHub, add it
-                this.leaderboard.push(localEntry);
-            } else if (localEntry.score > this.leaderboard[existingIndex].score) {
-                // Local score is better than GitHub score, use local
-                this.leaderboard[existingIndex] = localEntry;
-            }
-        });
-        
-        // Re-sort the merged leaderboard
-        this.leaderboard.sort((a, b) => {
-            if (b.score !== a.score) {
-                return b.score - a.score; // Higher score first
-            }
-            return new Date(a.date) - new Date(b.date); // Earlier date first for same score
-        });
-        
-        // Save the merged result locally
-        this.saveLeaderboardToLocal();
+        console.log('Leaderboard loaded from local storage:', this.leaderboard.length, 'entries');
     }
     
     saveLeaderboardToLocal() {
@@ -1310,17 +1308,42 @@ class AudioVisualMemoryGame {
         return this.examSectionScores.reduce((total, score) => total + score, 0);
     }
     
-    addToLeaderboard(playerName, score) {
+    async addToLeaderboard(playerName, score) {
         const entry = {
             name: playerName,
             score: score,
             date: new Date().toLocaleDateString(),
-            totalSections: this.examTotalSections
+            totalSections: this.examTotalSections,
+            timestamp: Date.now()
         };
         
+        try {
+            // First, try to submit to Firebase
+            const firebaseSuccess = await this.submitScoreToFirebase(entry);
+            
+            if (firebaseSuccess) {
+                // If Firebase submission was successful, reload the leaderboard to get updated rankings
+                await this.loadLeaderboardFromFirebase();
+            } else {
+                // Fallback to local storage if Firebase fails
+                this.addToLocalLeaderboard(entry);
+            }
+        } catch (error) {
+            console.error('Error adding to leaderboard:', error);
+            // Fallback to local storage
+            this.addToLocalLeaderboard(entry);
+        }
+        
+        // Return the player's current rank
+        return this.leaderboard.findIndex(existing => 
+            existing.name.toLowerCase().trim() === playerName.toLowerCase().trim()
+        ) + 1;
+    }
+    
+    addToLocalLeaderboard(entry) {
         // Check if player already exists (case-insensitive)
         const existingIndex = this.leaderboard.findIndex(existing => 
-            existing.name.toLowerCase().trim() === playerName.toLowerCase().trim()
+            existing.name.toLowerCase().trim() === entry.name.toLowerCase().trim()
         );
         
         if (existingIndex === -1) {
@@ -1328,11 +1351,11 @@ class AudioVisualMemoryGame {
             this.leaderboard.push(entry);
         } else {
             // Player exists - only update if new score is better
-            if (score > this.leaderboard[existingIndex].score) {
+            if (entry.score > this.leaderboard[existingIndex].score) {
                 this.leaderboard[existingIndex] = entry;
-                console.log(`${playerName} improved their score: ${this.leaderboard[existingIndex].score} → ${score}`);
+                console.log(`${entry.name} improved their score: ${this.leaderboard[existingIndex].score} → ${entry.score}`);
             } else {
-                console.log(`${playerName} didn't improve their best score of ${this.leaderboard[existingIndex].score}`);
+                console.log(`${entry.name} didn't improve their best score of ${this.leaderboard[existingIndex].score}`);
             }
         }
         
@@ -1345,21 +1368,51 @@ class AudioVisualMemoryGame {
         });
         
         this.saveLeaderboardToLocal();
-        
-        // Try to submit to GitHub (will be processed by GitHub Actions)
-        this.submitScoreToGitHub(entry);
-        
-        // Return the player's current rank
-        return this.leaderboard.findIndex(existing => 
-            existing.name.toLowerCase().trim() === playerName.toLowerCase().trim()
-        ) + 1;
     }
     
-    async submitScoreToGitHub(entry) {
-        // Note: Direct GitHub API submission from client-side is not possible without authentication
-        // The leaderboard will sync through the GitHub repository when the leaderboard.json file is updated
-        console.log('Score saved locally. GitHub sync will happen when leaderboard.json is updated in the repository.');
-        return false; // Always return false since client-side submission is not supported
+    async submitScoreToFirebase(entry) {
+        if (!this.firebaseInitialized || !this.db) {
+            console.log('Firebase not available, using local storage');
+            return false;
+        }
+        
+        try {
+            // Import Firestore functions
+            const { collection, doc, setDoc, getDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+            
+            // Create a unique document ID based on player name (normalized)
+            const playerId = entry.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+            const playerDocRef = doc(this.db, 'leaderboard', playerId);
+            
+            // Check if player already exists
+            const existingDoc = await getDoc(playerDocRef);
+            
+            if (existingDoc.exists()) {
+                const existingData = existingDoc.data();
+                if (entry.score <= existingData.score) {
+                    console.log(`${entry.name} didn't improve their best score of ${existingData.score}`);
+                    return true; // Return true because Firebase is working, just no update needed
+                }
+                console.log(`${entry.name} improved their score: ${existingData.score} → ${entry.score}`);
+            }
+            
+            // Add server timestamp for better sorting
+            const firestoreEntry = {
+                ...entry,
+                timestamp: serverTimestamp(),
+                updatedAt: serverTimestamp()
+            };
+            
+            // Save to Firestore (this will overwrite if player exists)
+            await setDoc(playerDocRef, firestoreEntry);
+            
+            console.log('Score successfully submitted to Firebase:', entry);
+            return true;
+            
+        } catch (error) {
+            console.error('Failed to submit score to Firebase:', error);
+            return false;
+        }
     }
     
     showLeaderboard(playerRank = null) {
@@ -1384,7 +1437,10 @@ class AudioVisualMemoryGame {
                 <h1>🏆 LEADERBOARD</h1>
                 <div class="leaderboard-subtitle">Top Exam Performers</div>
                 <div class="leaderboard-info">
-                    <span class="last-updated">Last updated: ${new Date().toLocaleString()}</span>
+                    <span class="connection-status ${this.firebaseInitialized ? 'connected' : 'offline'}">
+                        ${this.firebaseInitialized ? '🟢 Live Leaderboard' : '🔴 Offline Mode'}
+                    </span>
+                    <span class="last-updated">Updated: ${new Date().toLocaleString()}</span>
                     <button id="refresh-leaderboard-btn" class="refresh-btn">🔄 Refresh</button>
                 </div>
                 
@@ -1433,10 +1489,35 @@ class AudioVisualMemoryGame {
             this.showDifficultyScreen();
         });
         
-        document.getElementById('refresh-leaderboard-btn').addEventListener('click', () => {
-            this.loadLeaderboardFromGitHub().then(() => {
+        document.getElementById('refresh-leaderboard-btn').addEventListener('click', async () => {
+            // Show loading state
+            const refreshBtn = document.getElementById('refresh-leaderboard-btn');
+            const originalText = refreshBtn.innerHTML;
+            refreshBtn.innerHTML = '🔄 Loading...';
+            refreshBtn.disabled = true;
+            
+            try {
+                if (this.firebaseInitialized) {
+                    await this.loadLeaderboardFromFirebase();
+                } else {
+                    // Try to reinitialize Firebase if it wasn't available before
+                    await this.initializeFirebaseAndLoadLeaderboard();
+                }
                 this.showLeaderboard(playerRank);
-            });
+            } catch (error) {
+                console.error('Failed to refresh leaderboard:', error);
+                // Show error message briefly
+                refreshBtn.innerHTML = '❌ Error';
+                setTimeout(() => {
+                    refreshBtn.innerHTML = originalText;
+                    refreshBtn.disabled = false;
+                }, 2000);
+                return;
+            }
+            
+            // Reset button state
+            refreshBtn.innerHTML = originalText;
+            refreshBtn.disabled = false;
         });
     }
 }
