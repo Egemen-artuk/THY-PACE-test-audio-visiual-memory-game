@@ -96,9 +96,9 @@ class AudioVisualMemoryGame {
     setupEventListeners() {
         // Difficulty selection
         document.querySelectorAll('.difficulty-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
+            btn.addEventListener('click', async (e) => {
                 if (e.target.id === 'leaderboard-btn') {
-                    this.showLeaderboard();
+                    await this.showLeaderboard();
                 } else {
                     this.selectDifficulty(e.target.dataset.difficulty);
                 }
@@ -1024,7 +1024,11 @@ class AudioVisualMemoryGame {
         document.querySelector('.cities-interface').appendChild(newContainer);
         
         // Redirect to leaderboard after 3 seconds
-        setTimeout(() => {
+        setTimeout(async () => {
+            // Refresh leaderboard data before showing it
+            if (this.firebaseInitialized) {
+                await this.loadLeaderboardFromFirebase();
+            }
             this.showLeaderboard(playerRank);
         }, 3000);
     }
@@ -1415,10 +1419,10 @@ class AudioVisualMemoryGame {
         }
     }
     
-    showLeaderboard(playerRank = null) {
+    async showLeaderboard(playerRank = null) {
         this.hideAllScreens();
         
-        // Create leaderboard screen if it doesn't exist
+        // Show loading state immediately
         let leaderboardScreen = document.getElementById('leaderboard-screen');
         if (!leaderboardScreen) {
             leaderboardScreen = document.createElement('div');
@@ -1428,7 +1432,29 @@ class AudioVisualMemoryGame {
         }
         
         leaderboardScreen.classList.add('active');
+        leaderboardScreen.innerHTML = `
+            <div class="leaderboard-container">
+                <h1>🏆 LEADERBOARD</h1>
+                <div class="loading-message">🔄 Loading latest scores...</div>
+            </div>
+        `;
         
+        // Always refresh leaderboard data before showing it
+        if (this.firebaseInitialized) {
+            try {
+                console.log('Refreshing leaderboard data from Firebase...');
+                await this.loadLeaderboardFromFirebase();
+                console.log('Leaderboard data refreshed, displaying...');
+            } catch (error) {
+                console.log('Failed to refresh leaderboard data:', error);
+            }
+        }
+        
+        // Now display the actual leaderboard with fresh data
+        this.displayLeaderboardContent(leaderboardScreen, playerRank);
+    }
+    
+    displayLeaderboardContent(leaderboardScreen, playerRank = null) {
         const top10 = this.leaderboard.slice(0, 10);
         const currentPlayerEntry = playerRank ? this.leaderboard[playerRank - 1] : null;
         
@@ -1503,7 +1529,7 @@ class AudioVisualMemoryGame {
                     // Try to reinitialize Firebase if it wasn't available before
                     await this.initializeFirebaseAndLoadLeaderboard();
                 }
-                this.showLeaderboard(playerRank);
+                await this.showLeaderboard(playerRank);
             } catch (error) {
                 console.error('Failed to refresh leaderboard:', error);
                 // Show error message briefly
